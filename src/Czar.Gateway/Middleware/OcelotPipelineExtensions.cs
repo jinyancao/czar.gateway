@@ -2,6 +2,8 @@
 using System.Threading.Tasks;
 using Czar.Gateway.Authentication.Middleware;
 using Czar.Gateway.RateLimit.Middleware;
+using Czar.Gateway.Requester.Middleware;
+using Czar.Gateway.Responder.Middleware;
 using Ocelot.Authentication.Middleware;
 using Ocelot.Authorisation.Middleware;
 using Ocelot.Cache.Middleware;
@@ -28,7 +30,7 @@ namespace Czar.Gateway.Middleware
     /// </summary>
     public static class OcelotPipelineExtensions
     {
-        public static OcelotRequestDelegate BuildAhphOcelotPipeline(this IOcelotPipelineBuilder builder,
+        public static OcelotRequestDelegate BuildCzarOcelotPipeline(this IOcelotPipelineBuilder builder,
             OcelotPipelineConfiguration pipelineConfiguration)
         {
             // This is registered to catch any global exceptions that are not handled
@@ -49,8 +51,8 @@ namespace Czar.Gateway.Middleware
             // Allow the user to respond with absolutely anything they want.
             builder.UseIfNotNull(pipelineConfiguration.PreErrorResponderMiddleware);
 
-            // This is registered first so it can catch any errors and issue an appropriate response
-            builder.UseResponderMiddleware();
+            //builder.UseResponderMiddleware();
+            builder.UseCzarResponderMiddleware();
 
             // Then we get the downstream route information
             builder.UseDownstreamRouteFinderMiddleware();
@@ -129,8 +131,8 @@ namespace Czar.Gateway.Middleware
             builder.UseOutputCacheMiddleware();
 
             //We fire off the request and set the response on the scoped data repo
-            builder.UseHttpRequesterMiddleware();
-
+            //builder.UseHttpRequesterMiddleware();
+            builder.UseCzaHttpRequesterMiddleware();
             return builder.Build();
         }
 

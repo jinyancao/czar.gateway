@@ -21,6 +21,7 @@ namespace Czar.Sample.TestApi.Controllers
         [HttpGet("{id}")]
         public ActionResult<string> Get(int id)
         {
+            throw new Exception("测试异常");
             return "value";
         }
 

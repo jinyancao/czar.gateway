@@ -52,7 +52,7 @@ namespace Czar.Gateway.Middleware
 
             //pipelineBuilder.BuildOcelotPipeline(pipelineConfiguration);
             //使用自定义管道扩展 2018-11-15 金焰的世界
-            pipelineBuilder.BuildAhphOcelotPipeline(pipelineConfiguration);
+            pipelineBuilder.BuildCzarOcelotPipeline(pipelineConfiguration);
 
             var firstDelegate = pipelineBuilder.Build();
 
