@@ -36,9 +36,9 @@ namespace Czar.Gateway.Configuration
         public List<string> RedisConnectionStrings { get; set; }
 
         /// <summary>
-        /// Redis存储的key前缀,默认值ahphocelot,如果分布式缓存多个应用部署，需要修改此值。
+        /// Redis存储的key前缀,默认值CzarGateway,如果分布式缓存多个应用部署，需要修改此值。
         /// </summary>
-        public string RedisKeyPrefix { get; set; } = "ahphocelot";
+        public string RedisKeyPrefix { get; set; } = "CzarGateway";
 
         /// <summary>
         /// 金焰的世界

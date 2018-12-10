@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Czar.Sample.SqlServer", "sa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Czar.Sample.TestIds4", "sample\Czar.Sample.TestIds4\Czar.Sample.TestIds4.csproj", "{4C0ED39A-DB9A-4604-9DA0-944AC3EB02A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Czar.Sample.TestApi", "sample\Czar.Sample.TestApi\Czar.Sample.TestApi.csproj", "{45DDBE95-E1BE-4AD3-B2BE-C95EF181F0B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Czar.Sample.TestApi", "sample\Czar.Sample.TestApi\Czar.Sample.TestApi.csproj", "{45DDBE95-E1BE-4AD3-B2BE-C95EF181F0B8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{824C8BC2-AA86-4876-94F7-D8DDA3842EF2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

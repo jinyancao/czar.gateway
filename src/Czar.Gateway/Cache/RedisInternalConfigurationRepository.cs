@@ -1,5 +1,6 @@
 ﻿using Czar.Gateway.Configuration;
 using Ocelot.Configuration;
+using Ocelot.Configuration.Creator;
 using Ocelot.Configuration.Repository;
 using Ocelot.Responses;
 using System;
@@ -16,9 +17,12 @@ namespace Czar.Gateway.Cache
     public class RedisInternalConfigurationRepository : IInternalConfigurationRepository
     {
         private readonly CzarOcelotConfiguration _options;
-        private IInternalConfiguration _internalConfiguration;
-        public RedisInternalConfigurationRepository(CzarOcelotConfiguration options)
+        private IFileConfigurationRepository _fileConfigurationRepository;
+        private IInternalConfigurationCreator _internalConfigurationCreator;
+        public RedisInternalConfigurationRepository(CzarOcelotConfiguration options,IFileConfigurationRepository fileConfigurationRepository, IInternalConfigurationCreator internalConfigurationCreator)
         {
+            _fileConfigurationRepository = fileConfigurationRepository;
+            _internalConfigurationCreator = internalConfigurationCreator;
             _options = options;
             CSRedis.CSRedisClient csredis;
             if (options.RedisConnectionStrings.Count == 1)
@@ -61,7 +65,10 @@ namespace Czar.Gateway.Cache
             {
                 return new OkResponse<IInternalConfiguration>(result);
             }
-            return new OkResponse<IInternalConfiguration>(default(InternalConfiguration));
+            var fileconfig= _fileConfigurationRepository.Get().Result;
+            var internalConfig= _internalConfigurationCreator.Create(fileconfig.Data).Result;
+            AddOrReplace(internalConfig.Data);
+            return new OkResponse<IInternalConfiguration>(internalConfig.Data);
         }
     }
 }
