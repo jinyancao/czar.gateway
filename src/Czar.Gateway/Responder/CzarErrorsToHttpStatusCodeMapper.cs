@@ -50,6 +50,11 @@ namespace Czar.Gateway.Responder
                 return 429;
             }
 
+            if (errors.Any(e => e.Code == OcelotErrorCode.UnableToCreateAuthenticationHandlerError))
+            {
+                return 400;
+            }
+
             return 404;
         }
     }
