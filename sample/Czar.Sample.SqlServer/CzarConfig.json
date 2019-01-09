@@ -1,0 +1,17 @@
+{
+  "Environment": "Development",
+  "CzarHost": {
+    "ProxyEndPoint": true,
+    "IsSsl": "false",
+    "PfxPath": "cert/datasync.pfx",
+    "PfxPassword": "bl123456",
+    "ClientConfig": {
+      "Demo.Tcp.HelloObj": {
+        "Protocol": "Tcp",
+        "Host": "127.0.0.1",
+        "Port": 1111,
+        "Timeout": 20
+      }
+    }
+  }
+}

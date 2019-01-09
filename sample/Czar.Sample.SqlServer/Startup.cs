@@ -2,13 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AspectCore.Extensions.Reflection;
 using Czar.Gateway.Middleware;
+using Czar.Rpc.Clients;
+using Czar.Rpc.Codec;
+using Czar.Rpc.Configurations;
+using Czar.Rpc.DotNetty.Extensions;
+using Czar.Rpc.DotNetty.Tcp;
+using Czar.Rpc.Extensions;
+using DotNetty.Buffers;
 using IdentityServer4.AccessTokenValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Ocelot.Administration;
@@ -48,17 +57,20 @@ namespace Czar.Sample.SqlServer
             services.AddOcelot().AddCzarOcelot(option =>
             {
                 option.RedisKeyPrefix = "CzarGateway1";
-                //option.DbConnectionStrings = "Server=localhost;Database=Ctr_AuthPlatform;User ID=root;Password=bl123456;";
+              //  option.DbConnectionStrings = "Server=localhost;Database=Ctr_AuthPlatform;User ID=root;Password=bl123456;";
                 option.DbConnectionStrings = "Server=.;Database=Ctr_AuthPlatform;User ID=sa;Password=bl123456;";
                 option.RedisConnectionStrings = new List<string>() {         "192.168.1.111:6379,password=bl123456,defaultDatabase=0,poolsize=50,ssl=false,writeBuffer=10240,connectTimeout=1000,connectRetry=1;"
                 };
-                //option.EnableTimer = true;//启用定时任务
-                //option.TimerDelay = 10 * 000;//周期10秒
+               // option.EnableTimer = true;//启用定时任务
+               // option.TimerDelay = 10 * 1000;//周期10秒
                 option.ClientAuthorization = true;
                 option.ClientRateLimit = true;
             })
             //.UseMySql()
             .AddAdministration("/CzarOcelot", options);
+            #region 注入Rpc相关的服务
+            services.AddLibuvTcpClient(Configuration);
+            #endregion
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

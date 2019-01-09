@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Czar.Sample.SqlServer
@@ -19,6 +20,9 @@ namespace Czar.Sample.SqlServer
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
+            .ConfigureAppConfiguration(option=>option.AddJsonFile("CzarConfig.json"))
+                .UseStartup<Startup>()
+            ;
+                 
     }
 }

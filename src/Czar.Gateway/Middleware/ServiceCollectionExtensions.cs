@@ -13,6 +13,8 @@ using Ocelot.Configuration.Repository;
 using Ocelot.DependencyInjection;
 using Ocelot.Responder;
 using System;
+using Czar.Gateway.Rpc;
+using Czar.Rpc.Message;
 
 namespace Czar.Gateway.Middleware
 {
@@ -30,14 +32,18 @@ namespace Czar.Gateway.Middleware
         /// <returns></returns>
         public static IOcelotBuilder AddCzarOcelot(this IOcelotBuilder builder, Action<CzarOcelotConfiguration> option)
         {
-            builder.Services.Configure(option);
-            //配置信息
-            builder.Services.AddSingleton(
-                resolver => resolver.GetRequiredService<IOptions<CzarOcelotConfiguration>>().Value);
+            //builder.Services.Configure(option);
+            ////配置信息
+            //builder.Services.AddSingleton(
+            //    resolver => resolver.GetRequiredService<IOptions<CzarOcelotConfiguration>>().Value);
+            var options = new CzarOcelotConfiguration();
+            builder.Services.AddSingleton(options);
+            option?.Invoke(options);
             //配置文件仓储注入
             builder.Services.AddSingleton<IFileConfigurationRepository, SqlServerFileConfigurationRepository>();
             builder.Services.AddSingleton<IClientAuthenticationRepository, SqlServerClientAuthenticationRepository>();
             builder.Services.AddSingleton<IClientRateLimitRepository, SqlServerClientRateLimitRepository>();
+            builder.Services.AddSingleton<IRpcRepository, SqlServerRpcRepository>();
             //注册后端服务
             builder.Services.AddHostedService<DbConfigurationPoller>();
             //使用Redis重写缓存
@@ -46,6 +52,7 @@ namespace Czar.Gateway.Middleware
             builder.Services.AddSingleton<IInternalConfigurationRepository, RedisInternalConfigurationRepository>();
             builder.Services.AddSingleton<IOcelotCache<ClientRoleModel>, InRedisCache<ClientRoleModel>>();
             builder.Services.AddSingleton<IOcelotCache<RateLimitRuleModel>, InRedisCache<RateLimitRuleModel>>();
+            builder.Services.AddSingleton<IOcelotCache<RemoteInvokeMessage>, InRedisCache<RemoteInvokeMessage>>();
             builder.Services.AddSingleton<IOcelotCache<CzarClientRateLimitCounter?>, InRedisCache<CzarClientRateLimitCounter?>>();
             //注入授权
             builder.Services.AddSingleton<ICzarAuthenticationProcessor, CzarAuthenticationProcessor>();
@@ -54,6 +61,12 @@ namespace Czar.Gateway.Middleware
 
             //重写错误状态码
             builder.Services.AddSingleton<IErrorsToHttpStatusCodeMapper, CzarErrorsToHttpStatusCodeMapper>();
+
+            //http输出转换类
+            builder.Services.AddSingleton<IHttpResponder, CzarHttpContextResponder>();
+
+            //Rpc应用
+            builder.Services.AddSingleton<ICzarRpcProcessor, CzarRpcProcessor>();
             return builder;
         }
 
@@ -67,6 +80,7 @@ namespace Czar.Gateway.Middleware
             builder.Services.AddSingleton<IFileConfigurationRepository, MySqlFileConfigurationRepository>();
             builder.Services.AddSingleton<IClientAuthenticationRepository, MySqlClientAuthenticationRepository>();
             builder.Services.AddSingleton<IClientRateLimitRepository, MySqlClientRateLimitRepository>();
+            builder.Services.AddSingleton<IRpcRepository, MySqlRpcRepository>();
             return builder;
         }
     }

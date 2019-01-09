@@ -4,6 +4,7 @@ using Czar.Gateway.Authentication.Middleware;
 using Czar.Gateway.RateLimit.Middleware;
 using Czar.Gateway.Requester.Middleware;
 using Czar.Gateway.Responder.Middleware;
+using Czar.Gateway.Rpc.Middleware;
 using Ocelot.Authentication.Middleware;
 using Ocelot.Authorisation.Middleware;
 using Ocelot.Cache.Middleware;
@@ -33,11 +34,11 @@ namespace Czar.Gateway.Middleware
         public static OcelotRequestDelegate BuildCzarOcelotPipeline(this IOcelotPipelineBuilder builder,
             OcelotPipelineConfiguration pipelineConfiguration)
         {
-            // This is registered to catch any global exceptions that are not handled
-            // It also sets the Request Id if anything is set globally
+           
+            // 注册一个全局异常
             builder.UseExceptionHandlerMiddleware();
 
-            // If the request is for websockets upgrade we fork into a different pipeline
+            // 如果请求是websocket使用单独的管道
             builder.MapWhen(context => context.HttpContext.WebSockets.IsWebSocketRequest,
                 app =>
                 {
@@ -48,16 +49,16 @@ namespace Czar.Gateway.Middleware
                     app.UseWebSocketsProxyMiddleware();
                 });
 
-            // Allow the user to respond with absolutely anything they want.
+            // 添加自定义的错误管道
             builder.UseIfNotNull(pipelineConfiguration.PreErrorResponderMiddleware);
 
-            //builder.UseResponderMiddleware();
+            //使用自定义的输出管道
             builder.UseCzarResponderMiddleware();
 
-            // Then we get the downstream route information
+            // 下游路由匹配管道
             builder.UseDownstreamRouteFinderMiddleware();
 
-            //Expand other branch pipes
+            //增加自定义扩展管道
             if (pipelineConfiguration.MapWhenOcelotPipeline != null)
             {
                 foreach (var pipeline in pipelineConfiguration.MapWhenOcelotPipeline)
@@ -66,26 +67,22 @@ namespace Czar.Gateway.Middleware
                 }
             }
 
-            // Now we have the ds route we can transform headers and stuff?
+            // 使用Http头部转换管道
             builder.UseHttpHeadersTransformationMiddleware();
 
-            // Initialises downstream request
+            // 初始化下游请求管道
             builder.UseDownstreamRequestInitialiser();
 
-            // We check whether the request is ratelimit, and if there is no continue processing
+            // 使用自定义限流管道
             builder.UseRateLimiting();
 
-            // This adds or updates the request id (initally we try and set this based on global config in the error handling middleware)
-            // If anything was set at global level and we have a different setting at re route level the global stuff will be overwritten
-            // This means you can get a scenario where you have a different request id from the first piece of middleware to the request id middleware.
+            //使用请求ID生成管道
             builder.UseRequestIdMiddleware();
 
-            // Allow pre authentication logic. The idea being people might want to run something custom before what is built in.
+            //使用自定义授权前管道
             builder.UseIfNotNull(pipelineConfiguration.PreAuthenticationMiddleware);
 
-            // Now we know where the client is going to go we can authenticate them.
-            // We allow the ocelot middleware to be overriden by whatever the
-            // user wants
+            //根据请求判断是否启用授权来使用管道
             if (pipelineConfiguration.AuthenticationMiddleware == null)
             {
                 builder.UseAuthenticationMiddleware();
@@ -101,13 +98,10 @@ namespace Czar.Gateway.Middleware
             //添加自定义授权中间件  2018-11-15 金焰的世界
             builder.UseAhphAuthenticationMiddleware();
 
-            // Allow pre authorisation logic. The idea being people might want to run something custom before what is built in.
+            //启用自定义的认证之前中间件
             builder.UseIfNotNull(pipelineConfiguration.PreAuthorisationMiddleware);
 
-            // Now we have authenticated and done any claims transformation we 
-            // can authorise the request
-            // We allow the ocelot middleware to be overriden by whatever the
-            // user wants
+            //是否使用自定义的认证中间件
             if (pipelineConfiguration.AuthorisationMiddleware == null)
             {
                 builder.UseAuthorisationMiddleware();
@@ -117,22 +111,27 @@ namespace Czar.Gateway.Middleware
                 builder.Use(pipelineConfiguration.AuthorisationMiddleware);
             }
 
-            // Allow the user to implement their own query string manipulation logic
+            // 使用自定义的参数构建中间件
             builder.UseIfNotNull(pipelineConfiguration.PreQueryStringBuilderMiddleware);
 
-            // Get the load balancer for this request
+            // 使用负载均衡中间件
             builder.UseLoadBalancingMiddleware();
 
-            // This takes the downstream route we retrieved earlier and replaces any placeholders with the variables that should be used
+            // 使用下游地址创建中间件
             builder.UseDownstreamUrlCreatorMiddleware();
 
-            // Not sure if this is the best place for this but we use the downstream url 
-            // as the basis for our cache key.
+            // 使用缓存中间件
             builder.UseOutputCacheMiddleware();
 
-            //We fire off the request and set the response on the scoped data repo
-            //builder.UseHttpRequesterMiddleware();
+            //判断下游的是否启用rpc通信,切换到RPC处理
+            builder.MapWhen(context => context.DownstreamReRoute.DownstreamScheme.Equals("rpc", StringComparison.OrdinalIgnoreCase), app =>
+            {
+                app.UseCzarRpcMiddleware();
+            });
+
+            //使用下游请求中间件
             builder.UseCzaHttpRequesterMiddleware();
+
             return builder.Build();
         }
 
