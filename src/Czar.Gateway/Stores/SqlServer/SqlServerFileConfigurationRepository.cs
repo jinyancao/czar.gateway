@@ -6,6 +6,7 @@ using Ocelot.Configuration.Repository;
 using Ocelot.Responses;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 
@@ -134,10 +135,59 @@ namespace Czar.Gateway.Stores.SqlServer
             return new OkResponse<FileConfiguration>(file);
         }
 
-        //由于数据库存储可不实现Set接口直接返回
+        /// <summary>
+        /// 更新数据库中的配置信息
+        /// </summary>
+        /// <param name="fileConfiguration"></param>
+        /// <returns></returns>
         public async Task<Response> Set(FileConfiguration fileConfiguration)
         {
-            return new OkResponse();
+            using (var con = new SqlConnection(_option.DbConnectionStrings))
+            {
+                var global = fileConfiguration?.GlobalConfiguration;
+                if (global != null && !string.IsNullOrEmpty(global.RequestIdKey))
+                {
+                    var cmd = "UPDATE AhphGlobalConfiguration SET BaseUrl=@BaseUrl,DownstreamScheme=@DownstreamScheme,ServiceDiscoveryProvider=@ServiceDiscoveryProvider,LoadBalancerOptions=@LoadBalancerOptions,HttpHandlerOptions=@HttpHandlerOptions,QoSOptions=@QoSOptions WHERE RequestIdKey=@RequestIdKey";
+                    var result = await con.ExecuteAsync(cmd, new
+                    {
+                        global.BaseUrl,
+                        global.DownstreamScheme,
+                        ServiceDiscoveryProvider = global.ServiceDiscoveryProvider.ToJson(),
+                        LoadBalancerOptions = global.LoadBalancerOptions.ToJson(),
+                        HttpHandlerOptions = global.HttpHandlerOptions.ToJson(),
+                        QoSOptions = global.QoSOptions.ToJson(),
+                        global.RequestIdKey
+                    }, null, null, CommandType.Text);
+                }
+                var reRoutes = fileConfiguration.ReRoutes;
+                if (reRoutes != null && reRoutes.Count > 0)
+                {
+                    foreach (var item in reRoutes)
+                    {
+                        var cmd = @"UPDATE AhphReRoute SET UpstreamPathTemplate=@UpstreamPathTemplate,UpstreamHttpMethod=@UpstreamHttpMethod,UpstreamHost=@UpstreamHost,DownstreamScheme=@DownstreamScheme,DownstreamPathTemplate=@DownstreamPathTemplate,
+  DownstreamHostAndPorts=@DownstreamHostAndPorts,AuthenticationOptions=@AuthenticationOptions,CacheOptions=@CacheOptions,LoadBalancerOptions=@LoadBalancerOptions,QoSOptions=@QoSOptions,DelegatingHandlers=@DelegatingHandlers,ServiceName=@ServiceName WHERE RequestIdKey=@RequestIdKey";
+                        var result = await con.ExecuteAsync(cmd, new
+                        {
+                            item.UpstreamPathTemplate,
+                            item.UpstreamHttpMethod,
+                            item.UpstreamHost,
+                            item.DownstreamScheme,
+                            item.DownstreamPathTemplate,
+                            DownstreamHostAndPorts = item.DownstreamHostAndPorts.ToJson(),
+                            AuthenticationOptions = item.AuthenticationOptions.ToJson(),
+                            CacheOptions = item.FileCacheOptions.ToJson(),
+                            LoadBalancerOptions = item.LoadBalancerOptions.ToJson(),
+                            QoSOptions = item.QoSOptions.ToJson(),
+                            DelegatingHandlers = item.DelegatingHandlers.ToJson(),
+                            item.ServiceName,
+                            item.RequestIdKey
+                        }, null, null, CommandType.Text);
+                    }
+                }
+            }
+
+
+            return await Task.FromResult<Response>(new OkResponse());
         }
     }
 }
