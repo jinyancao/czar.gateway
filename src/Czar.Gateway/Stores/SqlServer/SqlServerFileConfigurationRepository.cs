@@ -169,7 +169,7 @@ namespace Czar.Gateway.Stores.SqlServer
                         var result = await con.ExecuteAsync(cmd, new
                         {
                             item.UpstreamPathTemplate,
-                            item.UpstreamHttpMethod,
+                            UpstreamHttpMethod = item.UpstreamHttpMethod.ToJson(),
                             item.UpstreamHost,
                             item.DownstreamScheme,
                             item.DownstreamPathTemplate,
