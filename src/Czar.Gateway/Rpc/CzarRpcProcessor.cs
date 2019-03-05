@@ -27,8 +27,8 @@ namespace Czar.Gateway.Rpc
         /// <returns></returns>
         public async Task<RemoteInvokeMessage> GetRemoteMethodAsync(string UpUrl)
         {
-            var region = _options.RedisKeyPrefix + "GetRemoteMethodAsync";
-            var key = region + UpUrl;
+            var region = CzarCacheRegion.RemoteInvokeMessageRegion;
+            var key = UpUrl;
             var cacheResult = _ocelotCache.Get(key, region);
             if (cacheResult != null)
             {//提取缓存数据
@@ -37,7 +37,7 @@ namespace Czar.Gateway.Rpc
             else
             {
                 cacheResult = await _rpcRepository.GetRemoteMethodAsync(UpUrl);
-                _ocelotCache.Add(key, cacheResult, TimeSpan.FromSeconds(_options.ClientRateLimitCacheTime), region);
+                _ocelotCache.Add(key, cacheResult, TimeSpan.FromSeconds(_options.CzarCacheTime), region);
                 return cacheResult;
             }
         }

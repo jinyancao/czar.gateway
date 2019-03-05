@@ -25,11 +25,15 @@ namespace Czar.Sample.TestApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            var csredis = new CSRedis.CSRedisClient("192.168.1.111:6379,password=bl123456,defaultDatabase=0,poolsize=500,ssl=false");
+
+            RedisHelper.Initialization(csredis);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            //Console.WriteLine(env.EnvironmentName);
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

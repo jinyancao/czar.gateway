@@ -54,5 +54,17 @@ namespace Czar.Gateway
                     throw new FormatException($"{timeSpan} can't be converted to TimeSpan, unknown type {type}");
             }
         }
+
+        /// <summary>
+        /// 获取格式化后的key
+        /// </summary>
+        /// <param name="prefix">系统标识</param>
+        /// <param name="region">分类标识</param>
+        /// <param name="key">key</param>
+        /// <returns></returns>
+        public static string GetKey(string prefix,string region, string key)
+        {
+            return prefix + "-" + region + "-" + key;
+        }
     }
 }

@@ -29,7 +29,7 @@ namespace Czar.Gateway.Authentication
         /// <returns></returns>
         public async Task<bool> CheckClientAuthenticationAsync(string clientid, string path)
         {
-            var enablePrefix = _options.RedisKeyPrefix + "ClientAuthentication";
+            var enablePrefix = CzarCacheRegion.AuthenticationRegion;
             var key = CzarOcelotHelper.ComputeCounterKey(enablePrefix, clientid, "", path);
             var cacheResult = _ocelotCache.Get(key, enablePrefix);
             if (cacheResult!=null)
@@ -40,7 +40,7 @@ namespace Czar.Gateway.Authentication
             {//重新获取认证信息
                 var result = await _clientAuthenticationRepository.ClientAuthenticationAsync(clientid, path);
                   //添加到缓存里
-                  _ocelotCache.Add(key, new ClientRoleModel() { CacheTime = DateTime.Now,Role=result }, TimeSpan.FromMinutes(_options.ClientAuthorizationCacheTime), enablePrefix);
+                  _ocelotCache.Add(key, new ClientRoleModel() { CacheTime = DateTime.Now,Role=result }, TimeSpan.FromMinutes(_options.CzarCacheTime), enablePrefix);
                 return result;
             }
         }

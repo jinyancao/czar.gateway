@@ -1,4 +1,5 @@
-﻿using Czar.Gateway.Configuration;
+﻿using Czar.Gateway.Cache;
+using Czar.Gateway.Configuration;
 using Ocelot.Cache;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,6 @@ namespace Czar.Gateway.RateLimit
         /// <returns></returns>
         public async Task<bool> CheckClientRateLimitResultAsync(string clientid, string path)
         {
-
             var result = false;
             var clientRule = new List<CzarClientRateLimitOptions>();
             //1、校验路由是否有限流策略
@@ -67,8 +67,8 @@ namespace Czar.Gateway.RateLimit
         /// <returns></returns>
         private async Task<bool> CheckReRouteRuleAsync(string path)
         {
-            var region = _options.RedisKeyPrefix + "CheckReRouteRuleAsync";
-            var key = region + path;
+            var region = CzarCacheRegion.ClientRoleModelRegion;
+            var key = path;
             var cacheResult = _ocelotCache.Get(key, region);
             if (cacheResult != null)
             {//提取缓存数据
@@ -77,7 +77,7 @@ namespace Czar.Gateway.RateLimit
             else
             {//重新获取限流策略
                 var result = await _clientRateLimitRepository.CheckReRouteRuleAsync(path);
-                _ocelotCache.Add(key, new ClientRoleModel() { CacheTime = DateTime.Now, Role = result }, TimeSpan.FromSeconds(_options.ClientRateLimitCacheTime), region);
+                _ocelotCache.Add(key, new ClientRoleModel() { CacheTime = DateTime.Now, Role = result }, TimeSpan.FromSeconds(_options.CzarCacheTime), region);
                 return result;
             }
             
@@ -91,8 +91,8 @@ namespace Czar.Gateway.RateLimit
         /// <returns></returns>
         private async Task<(bool RateLimit, List<CzarClientRateLimitOptions> rateLimitOptions)> CheckClientRateLimitAsync(string clientid, string path)
         {
-            var region = _options.RedisKeyPrefix + "CheckClientRateLimitAsync";
-            var key = region + clientid + path;
+            var region = CzarCacheRegion.RateLimitRuleModelRegion;
+            var key = clientid + path;
             var cacheResult = _rateLimitRuleCache.Get(key, region);
             if (cacheResult != null)
             {//提取缓存数据
@@ -101,7 +101,7 @@ namespace Czar.Gateway.RateLimit
             else
             {//重新获取限流策略
                 var result = await _clientRateLimitRepository.CheckClientRateLimitAsync(clientid, path);
-                _rateLimitRuleCache.Add(key, new RateLimitRuleModel() { RateLimit=result.RateLimit, rateLimitOptions=result.rateLimitOptions }, TimeSpan.FromSeconds(_options.ClientRateLimitCacheTime), region);
+                _rateLimitRuleCache.Add(key, new RateLimitRuleModel() { RateLimit=result.RateLimit, rateLimitOptions=result.rateLimitOptions }, TimeSpan.FromSeconds(_options.CzarCacheTime), region);
                 return result;
             }
         }
@@ -114,8 +114,8 @@ namespace Czar.Gateway.RateLimit
         /// <returns></returns>
         private async Task<bool> CheckClientReRouteWhiteListAsync(string clientid, string path)
         {
-            var region = _options.RedisKeyPrefix + "CheckClientReRouteWhiteListAsync";
-            var key = region +clientid+ path;
+            var region = CzarCacheRegion.ClientReRouteWhiteListRegion;
+            var key = clientid+ path;
             var cacheResult = _ocelotCache.Get(key, region);
             if (cacheResult != null)
             {//提取缓存数据
@@ -124,7 +124,7 @@ namespace Czar.Gateway.RateLimit
             else
             {//重新获取限流策略
                 var result = await _clientRateLimitRepository.CheckClientReRouteWhiteListAsync(clientid,path);
-                _ocelotCache.Add(key, new ClientRoleModel() { CacheTime = DateTime.Now, Role = result }, TimeSpan.FromSeconds(_options.ClientRateLimitCacheTime), region);
+                _ocelotCache.Add(key, new ClientRoleModel() { CacheTime = DateTime.Now, Role = result }, TimeSpan.FromSeconds(_options.CzarCacheTime), region);
                 return result;
             }
         }
@@ -143,7 +143,7 @@ namespace Czar.Gateway.RateLimit
                 {
                     CzarClientRateLimitCounter counter = new CzarClientRateLimitCounter(DateTime.UtcNow, 1);
                     //分别对每个策略校验
-                    var enablePrefix = _options.RedisKeyPrefix + "RateLimitRule";
+                    var enablePrefix = CzarCacheRegion.CzarClientRateLimitCounterRegion;
                     var key = CzarOcelotHelper.ComputeCounterKey(enablePrefix, op.ClientId, op.Period, op.RateLimitPath);
                     var periodTimestamp = CzarOcelotHelper.ConvertToSecond(op.Period);
                     lock (_processLocker)

@@ -1,4 +1,5 @@
 ﻿using Czar.Gateway.Configuration;
+using Ocelot.Cache;
 using Ocelot.Configuration;
 using Ocelot.Configuration.Creator;
 using Ocelot.Configuration.Repository;
@@ -19,26 +20,13 @@ namespace Czar.Gateway.Cache
         private readonly CzarOcelotConfiguration _options;
         private IFileConfigurationRepository _fileConfigurationRepository;
         private IInternalConfigurationCreator _internalConfigurationCreator;
-        public RedisInternalConfigurationRepository(CzarOcelotConfiguration options,IFileConfigurationRepository fileConfigurationRepository, IInternalConfigurationCreator internalConfigurationCreator)
+        private readonly IOcelotCache<InternalConfiguration> _ocelotCache;
+        public RedisInternalConfigurationRepository(CzarOcelotConfiguration options,IFileConfigurationRepository fileConfigurationRepository, IInternalConfigurationCreator internalConfigurationCreator, IOcelotCache<InternalConfiguration> ocelotCache)
         {
             _fileConfigurationRepository = fileConfigurationRepository;
             _internalConfigurationCreator = internalConfigurationCreator;
             _options = options;
-            CSRedis.CSRedisClient csredis;
-            if (options.RedisConnectionStrings.Count == 1)
-            {
-                //普通模式
-                csredis = new CSRedis.CSRedisClient(options.RedisConnectionStrings[0]);
-            }
-            else
-            {
-                //集群模式
-                //实现思路：根据key.GetHashCode() % 节点总数量，确定连向的节点
-                //也可以自定义规则(第一个参数设置)
-                csredis = new CSRedis.CSRedisClient(null, options.RedisConnectionStrings.ToArray());
-            }
-            //初始化 RedisHelper
-            RedisHelper.Initialization(csredis);
+            _ocelotCache = ocelotCache;
         }
 
         /// <summary>
@@ -48,8 +36,8 @@ namespace Czar.Gateway.Cache
         /// <returns></returns>
         public Response AddOrReplace(IInternalConfiguration internalConfiguration)
         {
-            var key = _options.RedisKeyPrefix + "-internalConfiguration";
-            RedisHelper.Set(key, internalConfiguration.ToJson());
+            var key = CzarCacheRegion.InternalConfigurationRegion;
+            _ocelotCache.Add(key, (InternalConfiguration)internalConfiguration, TimeSpan.FromSeconds(_options.CzarCacheTime), "");
             return new OkResponse();
         }
 
@@ -59,8 +47,8 @@ namespace Czar.Gateway.Cache
         /// <returns></returns>
         public Response<IInternalConfiguration> Get()
         {
-            var key = _options.RedisKeyPrefix + "-internalConfiguration";
-            var result = RedisHelper.Get<InternalConfiguration>(key);
+            var key = CzarCacheRegion.InternalConfigurationRegion;
+            var result = _ocelotCache.Get(key, "");
             if (result!=null)
             {
                 return new OkResponse<IInternalConfiguration>(result);

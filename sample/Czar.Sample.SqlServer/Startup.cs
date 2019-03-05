@@ -56,13 +56,10 @@ namespace Czar.Sample.SqlServer
             };
             services.AddOcelot().AddCzarOcelot(option =>
             {
-                option.RedisKeyPrefix = "CzarGateway1";
-              //  option.DbConnectionStrings = "Server=localhost;Database=Ctr_AuthPlatform;User ID=root;Password=bl123456;";
+                option.RedisOcelotKeyPrefix = "CzarGateway1";
                 option.DbConnectionStrings = "Server=.;Database=Ctr_AuthPlatform;User ID=sa;Password=bl123456;";
-                option.RedisConnectionStrings = new List<string>() {         "192.168.1.111:6379,password=bl123456,defaultDatabase=0,poolsize=50,ssl=false,writeBuffer=10240,connectTimeout=1000,connectRetry=1;"
-                };
-               // option.EnableTimer = true;//启用定时任务
-               // option.TimerDelay = 10 * 1000;//周期10秒
+                option.RedisConnectionString = "192.168.1.111:6379,password=bl123456,defaultDatabase=0,poolsize=50,ssl=false,writeBuffer=10240,connectTimeout=1000,connectRetry=1;"
+                ;
                 option.ClientAuthorization = true;
                 option.ClientRateLimit = true;
             })

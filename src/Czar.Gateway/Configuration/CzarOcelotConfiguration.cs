@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Czar.Gateway.Configuration
+﻿namespace Czar.Gateway.Configuration
 {
     /// <summary>
     /// 金焰的世界
@@ -33,12 +31,35 @@ namespace Czar.Gateway.Configuration
         /// 2018-11-14
         /// Redis连接字符串
         /// </summary>
-        public List<string> RedisConnectionStrings { get; set; }
+        public string RedisConnectionString { get; set; }
 
         /// <summary>
-        /// Redis存储的key前缀,默认值CzarGateway,如果分布式缓存多个应用部署，需要修改此值。
+        /// 金焰的世界
+        /// 2019-03-03
+        /// 配置哨兵或分区时使用
         /// </summary>
-        public string RedisKeyPrefix { get; set; } = "CzarGateway";
+        public string[] RedisSentinelOrPartitionConStr { get; set; }
+
+        /// <summary>
+        /// 金焰的世界
+        /// 2019-03-03
+        /// Redis部署方式，默认使用普通方式
+        /// </summary>
+        public RedisStoreMode RedisStoreMode { get; set; } = RedisStoreMode.Normal;
+
+        /// <summary>
+        /// 金焰的计界
+        /// 2019-03-03
+        /// 做集群缓存同步时使用，会订阅所有正则匹配的事件
+        /// </summary>
+        public string RedisOcelotKeyPrefix { get; set; } = "CzarOcelot";
+
+        /// <summary>
+        /// 金焰的世界
+        /// 2019-03-03
+        /// 是否启用集群环境，如果非集群环境直接本地缓存+数据库即可
+        /// </summary>
+        public bool ClusterEnvironment { get; set; } = false;
 
         /// <summary>
         /// 金焰的世界
@@ -50,9 +71,9 @@ namespace Czar.Gateway.Configuration
         /// <summary>
         /// 金焰的世界
         /// 2018-11-15
-        /// 客户端授权缓存时间，默认30分钟
+        /// 服务器缓存时间，默认30分钟
         /// </summary>
-        public int ClientAuthorizationCacheTime { get; set; } = 1800;
+        public int CzarCacheTime { get; set; } = 1800;
         /// <summary>
         /// 金焰的世界
         /// 2018-11-15
@@ -66,12 +87,5 @@ namespace Czar.Gateway.Configuration
         /// 是否开启自定义限流，默认不开启
         /// </summary>
         public bool ClientRateLimit { get; set; } = false;
-
-        /// <summary>
-        /// 金焰的世界
-        /// 2018-11-18
-        /// 客户端限流缓存时间，默认30分钟
-        /// </summary>
-        public int ClientRateLimitCacheTime { get; set; } = 1800;
     }
 }

@@ -12,6 +12,8 @@ using Ocelot.Configuration.Repository;
 using Ocelot.Responses;
 using Microsoft.AspNetCore.Hosting;
 using System.Diagnostics;
+using Czar.Gateway.Configuration;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Czar.Gateway.Middleware
 {
@@ -42,8 +44,30 @@ namespace Czar.Gateway.Middleware
             var configuration = await CreateConfiguration(builder);
 
             ConfigureDiagnosticListener(builder);
-
+            CacheChangeListener(builder);
             return CreateOcelotPipeline(builder, pipelineConfiguration);
+        }
+
+        /// <summary>
+        /// 金焰的世界
+        /// 2019-03-03
+        /// 添加缓存数据变更订阅
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <returns></returns>
+        private static void CacheChangeListener(IApplicationBuilder builder)
+        {
+            var config= builder.ApplicationServices.GetService<CzarOcelotConfiguration>();
+            var _cache= builder.ApplicationServices.GetService<IMemoryCache>();
+            if (config.ClusterEnvironment)
+            {
+                //订阅满足条件的所有事件
+                RedisHelper.PSubscribe(new[] { config.RedisOcelotKeyPrefix + "*" }, message =>
+                {
+                    var key = message.Channel;
+                    _cache.Remove(key); //直接移除，如果有请求从redis里取
+                });
+            }
         }
 
         private static IApplicationBuilder CreateOcelotPipeline(IApplicationBuilder builder, OcelotPipelineConfiguration pipelineConfiguration)

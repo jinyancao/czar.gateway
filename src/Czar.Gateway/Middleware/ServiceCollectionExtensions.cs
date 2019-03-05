@@ -6,7 +6,6 @@ using Czar.Gateway.Stores.SqlServer;
 using Czar.Gateway.RateLimit;
 using Czar.Gateway.Responder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Ocelot.Cache;
 using Ocelot.Configuration.File;
 using Ocelot.Configuration.Repository;
@@ -15,6 +14,7 @@ using Ocelot.Responder;
 using System;
 using Czar.Gateway.Rpc;
 using Czar.Rpc.Message;
+using Ocelot.Configuration;
 
 namespace Czar.Gateway.Middleware
 {
@@ -32,10 +32,6 @@ namespace Czar.Gateway.Middleware
         /// <returns></returns>
         public static IOcelotBuilder AddCzarOcelot(this IOcelotBuilder builder, Action<CzarOcelotConfiguration> option)
         {
-            //builder.Services.Configure(option);
-            ////配置信息
-            //builder.Services.AddSingleton(
-            //    resolver => resolver.GetRequiredService<IOptions<CzarOcelotConfiguration>>().Value);
             var options = new CzarOcelotConfiguration();
             builder.Services.AddSingleton(options);
             option?.Invoke(options);
@@ -46,14 +42,35 @@ namespace Czar.Gateway.Middleware
             builder.Services.AddSingleton<IRpcRepository, SqlServerRpcRepository>();
             //注册后端服务
             builder.Services.AddHostedService<DbConfigurationPoller>();
-            //使用Redis重写缓存
-            builder.Services.AddSingleton<IOcelotCache<FileConfiguration>, InRedisCache<FileConfiguration>>();
-            builder.Services.AddSingleton<IOcelotCache<CachedResponse>, InRedisCache<CachedResponse>>();
+            builder.Services.AddMemoryCache(); //添加本地缓存
+            #region 启动Redis缓存，并支持普通模式 官方集群模式  哨兵模式 分区模式
+            if (options.ClusterEnvironment)
+            {
+                //默认使用普通模式
+                var csredis = new CSRedis.CSRedisClient(options.RedisConnectionString);
+                switch (options.RedisStoreMode)
+                {
+                    case RedisStoreMode.Partition:
+                        var NodesIndex = options.RedisSentinelOrPartitionConStr;
+                        Func<string, string> nodeRule = null;
+                        csredis = new CSRedis.CSRedisClient(nodeRule, options.RedisSentinelOrPartitionConStr);
+                        break;
+                    case RedisStoreMode.Sentinel:
+                        csredis = new CSRedis.CSRedisClient(options.RedisConnectionString, options.RedisSentinelOrPartitionConStr);
+                        break;
+                }
+                //初始化 RedisHelper
+                RedisHelper.Initialization(csredis);
+            }
+            #endregion
+            builder.Services.AddSingleton<IOcelotCache<FileConfiguration>, CzarMemoryCache<FileConfiguration>>();
+            builder.Services.AddSingleton<IOcelotCache<InternalConfiguration>, CzarMemoryCache<InternalConfiguration>>();
+            builder.Services.AddSingleton<IOcelotCache<CachedResponse>, CzarMemoryCache<CachedResponse>>();
             builder.Services.AddSingleton<IInternalConfigurationRepository, RedisInternalConfigurationRepository>();
-            builder.Services.AddSingleton<IOcelotCache<ClientRoleModel>, InRedisCache<ClientRoleModel>>();
-            builder.Services.AddSingleton<IOcelotCache<RateLimitRuleModel>, InRedisCache<RateLimitRuleModel>>();
-            builder.Services.AddSingleton<IOcelotCache<RemoteInvokeMessage>, InRedisCache<RemoteInvokeMessage>>();
-            builder.Services.AddSingleton<IOcelotCache<CzarClientRateLimitCounter?>, InRedisCache<CzarClientRateLimitCounter?>>();
+            builder.Services.AddSingleton<IOcelotCache<ClientRoleModel>, CzarMemoryCache<ClientRoleModel>>();
+            builder.Services.AddSingleton<IOcelotCache<RateLimitRuleModel>, CzarMemoryCache<RateLimitRuleModel>>();
+            builder.Services.AddSingleton<IOcelotCache<RemoteInvokeMessage>, CzarMemoryCache<RemoteInvokeMessage>>();
+            builder.Services.AddSingleton<IOcelotCache<CzarClientRateLimitCounter?>, CzarMemoryCache<CzarClientRateLimitCounter?>>();
             //注入授权
             builder.Services.AddSingleton<ICzarAuthenticationProcessor, CzarAuthenticationProcessor>();
             //注入限流实现
