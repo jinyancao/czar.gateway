@@ -54,7 +54,7 @@ namespace Czar.Sample.SqlServer
                 o.RequireHttpsMetadata = false;
                 o.ApiName = "gateway_admin"; //网关管理的名称，对应的为客户端授权的scope
             };
-            services.AddOcelot().AddCzarOcelot(option =>
+            services.AddCzarOcelot(option =>
             {
                 option.RedisOcelotKeyPrefix = "CzarGateway1";
                 option.DbConnectionStrings = "Server=.;Database=Ctr_AuthPlatform;User ID=sa;Password=bl123456;";

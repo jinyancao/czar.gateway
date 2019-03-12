@@ -1,0 +1,11 @@
+{
+  "Environment": "Development",
+  "CzarHost": {
+    "Port": 7711,
+    "QuietPeriodSeconds": 2,
+    "ShutdownTimeoutSeconds": 2,
+    "IsSsl": "false",
+    "PfxPath": "cert/datasync.pfx",
+    "PfxPassword": "123456"
+  }
+}

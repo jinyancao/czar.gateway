@@ -15,6 +15,9 @@ using System;
 using Czar.Gateway.Rpc;
 using Czar.Rpc.Message;
 using Ocelot.Configuration;
+using Czar.Rpc.DotNetty.Extensions;
+using Microsoft.Extensions.Configuration;
+using System.Linq;
 
 namespace Czar.Gateway.Middleware
 {
@@ -30,19 +33,20 @@ namespace Czar.Gateway.Middleware
         /// </summary>
         /// <param name="builder"></param>
         /// <returns></returns>
-        public static IOcelotBuilder AddCzarOcelot(this IOcelotBuilder builder, Action<CzarOcelotConfiguration> option)
+        public static IOcelotBuilder AddCzarOcelot(this IServiceCollection builder, Action<CzarOcelotConfiguration> option)
         {
             var options = new CzarOcelotConfiguration();
-            builder.Services.AddSingleton(options);
+            builder.AddSingleton(options);
             option?.Invoke(options);
+
             //配置文件仓储注入
-            builder.Services.AddSingleton<IFileConfigurationRepository, SqlServerFileConfigurationRepository>();
-            builder.Services.AddSingleton<IClientAuthenticationRepository, SqlServerClientAuthenticationRepository>();
-            builder.Services.AddSingleton<IClientRateLimitRepository, SqlServerClientRateLimitRepository>();
-            builder.Services.AddSingleton<IRpcRepository, SqlServerRpcRepository>();
+            builder.AddSingleton<IFileConfigurationRepository, SqlServerFileConfigurationRepository>();
+            builder.AddSingleton<IClientAuthenticationRepository, SqlServerClientAuthenticationRepository>();
+            builder.AddSingleton<IClientRateLimitRepository, SqlServerClientRateLimitRepository>();
+           
             //注册后端服务
-            builder.Services.AddHostedService<DbConfigurationPoller>();
-            builder.Services.AddMemoryCache(); //添加本地缓存
+            builder.AddHostedService<DbConfigurationPoller>();
+            builder.AddMemoryCache(); //添加本地缓存
             #region 启动Redis缓存，并支持普通模式 官方集群模式  哨兵模式 分区模式
             if (options.ClusterEnvironment)
             {
@@ -63,28 +67,33 @@ namespace Czar.Gateway.Middleware
                 RedisHelper.Initialization(csredis);
             }
             #endregion
-            builder.Services.AddSingleton<IOcelotCache<FileConfiguration>, CzarMemoryCache<FileConfiguration>>();
-            builder.Services.AddSingleton<IOcelotCache<InternalConfiguration>, CzarMemoryCache<InternalConfiguration>>();
-            builder.Services.AddSingleton<IOcelotCache<CachedResponse>, CzarMemoryCache<CachedResponse>>();
-            builder.Services.AddSingleton<IInternalConfigurationRepository, RedisInternalConfigurationRepository>();
-            builder.Services.AddSingleton<IOcelotCache<ClientRoleModel>, CzarMemoryCache<ClientRoleModel>>();
-            builder.Services.AddSingleton<IOcelotCache<RateLimitRuleModel>, CzarMemoryCache<RateLimitRuleModel>>();
-            builder.Services.AddSingleton<IOcelotCache<RemoteInvokeMessage>, CzarMemoryCache<RemoteInvokeMessage>>();
-            builder.Services.AddSingleton<IOcelotCache<CzarClientRateLimitCounter?>, CzarMemoryCache<CzarClientRateLimitCounter?>>();
+            builder.AddSingleton<IOcelotCache<FileConfiguration>, CzarMemoryCache<FileConfiguration>>();
+            builder.AddSingleton<IOcelotCache<InternalConfiguration>, CzarMemoryCache<InternalConfiguration>>();
+            builder.AddSingleton<IOcelotCache<CachedResponse>, CzarMemoryCache<CachedResponse>>();
+            builder.AddSingleton<IInternalConfigurationRepository, RedisInternalConfigurationRepository>();
+            builder.AddSingleton<IOcelotCache<ClientRoleModel>, CzarMemoryCache<ClientRoleModel>>();
+            builder.AddSingleton<IOcelotCache<RateLimitRuleModel>, CzarMemoryCache<RateLimitRuleModel>>();
+            builder.AddSingleton<IOcelotCache<RemoteInvokeMessage>, CzarMemoryCache<RemoteInvokeMessage>>();
+            builder.AddSingleton<IOcelotCache<CzarClientRateLimitCounter?>, CzarMemoryCache<CzarClientRateLimitCounter?>>();
             //注入授权
-            builder.Services.AddSingleton<ICzarAuthenticationProcessor, CzarAuthenticationProcessor>();
+            builder.AddSingleton<ICzarAuthenticationProcessor, CzarAuthenticationProcessor>();
             //注入限流实现
-            builder.Services.AddSingleton<IClientRateLimitProcessor, CzarClientRateLimitProcessor>();
+            builder.AddSingleton<IClientRateLimitProcessor, CzarClientRateLimitProcessor>();
 
             //重写错误状态码
-            builder.Services.AddSingleton<IErrorsToHttpStatusCodeMapper, CzarErrorsToHttpStatusCodeMapper>();
+            builder.AddSingleton<IErrorsToHttpStatusCodeMapper, CzarErrorsToHttpStatusCodeMapper>();
 
             //http输出转换类
-            builder.Services.AddSingleton<IHttpResponder, CzarHttpContextResponder>();
+            builder.AddSingleton<IHttpResponder, CzarHttpContextResponder>();
 
+            var service = builder.First(x => x.ServiceType == typeof(IConfiguration));
+            var configuration = (IConfiguration)service.ImplementationInstance;
             //Rpc应用
-            builder.Services.AddSingleton<ICzarRpcProcessor, CzarRpcProcessor>();
-            return builder;
+            builder.AddSingleton<ICzarRpcProcessor, CzarRpcProcessor>();
+            builder.AddSingleton<IRpcRepository, SqlServerRpcRepository>();
+            builder.AddLibuvTcpClient(configuration);
+            
+            return new OcelotBuilder(builder, configuration);
         }
 
         /// <summary>

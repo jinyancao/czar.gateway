@@ -1,24 +1,14 @@
 ﻿using Czar.Gateway.Errors;
 using Czar.Rpc.Clients;
-using Czar.Rpc.Message;
-using Microsoft.AspNetCore.Http;
 using Ocelot.Logging;
 using Ocelot.Middleware;
 using Ocelot.Responses;
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Czar.Gateway.Rpc.Middleware
 {
-    /// <summary>
-    /// 金焰的世界
-    /// 2019-01-02
-    /// Rpc通信中间件，集成Czar.Rpc
-    /// </summary>
     public class CzarRpcMiddleware : OcelotMiddleware
     {
         private readonly OcelotRequestDelegate _next;
